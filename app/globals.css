@@ -1,26 +1,144 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-base: #fffcf7;
+  --color-surface: #fffefc;
+  --color-navy: #544739;
+  --color-navy-soft: color-mix(in srgb, #544739 52%, white);
+  --color-accent: #859a93;
+  --color-accent-dark: color-mix(in srgb, #859a93 68%, black);
+  --color-accent-soft: color-mix(in srgb, #859a93 20%, white);
+  --color-accent-2: color-mix(in srgb, #859a93 50%, #544739 50%);
+  --color-ink: var(--color-navy);
+  --color-ink-soft: var(--color-navy-soft);
+  --color-border: color-mix(in srgb, #544739 13%, white);
+  --gradient-accent: linear-gradient(135deg, var(--color-accent), var(--color-accent-2));
+  --gradient-page: linear-gradient(160deg, #fffefb 0%, #fffcf7 55%, #faf3e6 100%);
+
+  /* 予定の色分け(5段階)は、すべてアクセント色とテキスト色の間を補間して作る。
+     新しい色相を持ち込まないことで「見覚えのない色」が出ないようにしている。 */
+  --color-event-1: var(--color-accent);
+  --color-event-2: color-mix(in srgb, #859a93 75%, #544739 25%);
+  --color-event-3: var(--color-accent-2);
+  --color-event-4: color-mix(in srgb, #859a93 25%, #544739 75%);
+  --color-event-5: var(--color-ink);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-base: var(--color-base);
+  --color-surface: var(--color-surface);
+  --color-navy: var(--color-navy);
+  --color-navy-soft: var(--color-navy-soft);
+  --color-accent: var(--color-accent);
+  --color-accent-dark: var(--color-accent-dark);
+  --color-accent-soft: var(--color-accent-soft);
+  --color-accent-2: var(--color-accent-2);
+  --color-ink: var(--color-ink);
+  --color-ink-soft: var(--color-ink-soft);
+  --color-border: var(--color-border);
+  --font-sans: var(--font-inter), var(--font-noto-sans-jp);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--gradient-page);
+  background-attachment: fixed;
+  color: var(--color-ink);
+  font-family: var(--font-inter), var(--font-noto-sans-jp), sans-serif;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.45s ease-out both;
+}
+
+@keyframes ring-fill {
+  from {
+    stroke-dashoffset: var(--ring-circumference);
+  }
+}
+
+.animate-ring-fill {
+  animation: ring-fill 0.8s ease-out both;
+}
+
+.event-chip {
+  border-left-width: 3px;
+  border-left-style: solid;
+  transition: filter 0.15s ease-out;
+}
+
+.event-chip:hover {
+  filter: brightness(0.97);
+}
+
+.event-chip.is-selected {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -1px;
+}
+
+.event-chip-0 {
+  border-left-color: var(--color-event-1);
+  background: color-mix(in srgb, var(--color-event-1) 14%, var(--color-surface));
+}
+
+.event-chip-1 {
+  border-left-color: var(--color-event-2);
+  background: color-mix(in srgb, var(--color-event-2) 14%, var(--color-surface));
+}
+
+.event-chip-2 {
+  border-left-color: var(--color-event-3);
+  background: color-mix(in srgb, var(--color-event-3) 14%, var(--color-surface));
+}
+
+.event-chip-3 {
+  border-left-color: var(--color-event-4);
+  background: color-mix(in srgb, var(--color-event-4) 14%, var(--color-surface));
+}
+
+.event-chip-4 {
+  border-left-color: var(--color-event-5);
+  background: color-mix(in srgb, var(--color-event-5) 14%, var(--color-surface));
+}
+
+.timetable-band-even {
+  background: color-mix(in srgb, var(--color-accent) 5%, transparent);
+}
+
+.priority-dot {
+  display: inline-block;
+  border-radius: 9999px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+/* 優先度の3段階もアクセント色の濃淡だけで表現(低=薄い、中=アクセントそのもの)。
+   高だけは「緊急」の慣習的な意味を持たせるため、テーマと独立した赤系にしている。 */
+.priority-dot-low {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-accent) 55%, white),
+    color-mix(in srgb, var(--color-accent) 80%, white)
+  );
+}
+
+.priority-dot-medium {
+  background: linear-gradient(
+    135deg,
+    var(--color-accent),
+    var(--color-accent-dark)
+  );
+}
+
+.priority-dot-high {
+  background: linear-gradient(135deg, #e4735c, #c23b2e);
 }
