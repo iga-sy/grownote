@@ -82,23 +82,53 @@ function TabButton({
   );
 }
 
+export interface TaskUpdates {
+  title?: string;
+  dueDate?: string | null;
+  dueTime?: string | null;
+  priority?: Priority;
+  repeat?: TaskRepeat;
+  description?: string | null;
+  fileUrl?: string | null;
+}
+
 function TaskDetailPanel({
   task,
   onSave,
 }: {
   task: Task;
-  onSave: (id: number, description: string | null, fileUrl: string | null) => Promise<void>;
+  onSave: (id: number, updates: TaskUpdates) => Promise<void>;
 }) {
+  const [title, setTitle] = useState(task.title);
+  const [dueDate, setDueDate] = useState(task.dueDate ?? "");
+  const [dueTime, setDueTime] = useState(task.dueTime ?? "");
+  const [priority, setPriority] = useState<Priority>(task.priority);
+  const [repeat, setRepeat] = useState<TaskRepeat>(task.repeat);
   const [description, setDescription] = useState(task.description ?? "");
   const [fileUrl, setFileUrl] = useState(task.fileUrl ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  function markDirty<T>(setter: (v: T) => void) {
+    return (v: T) => {
+      setter(v);
+      setSaved(false);
+    };
+  }
+
   async function handleSave() {
     setSaving(true);
     setSaved(false);
     try {
-      await onSave(task.id, description.trim() || null, fileUrl.trim() || null);
+      await onSave(task.id, {
+        title: title.trim() || task.title,
+        dueDate: dueDate || null,
+        dueTime: dueTime || null,
+        priority,
+        repeat,
+        description: description.trim() || null,
+        fileUrl: fileUrl.trim() || null,
+      });
       setSaved(true);
     } finally {
       setSaving(false);
@@ -110,12 +140,61 @@ function TaskDetailPanel({
       onClick={(e) => e.stopPropagation()}
       className="flex flex-col gap-2 rounded-md border border-border bg-accent-soft/25 p-2"
     >
+      <input
+        value={title}
+        onChange={(e) => markDirty(setTitle)(e.target.value)}
+        placeholder="タスク名"
+        className="rounded-md border border-border bg-surface px-2 py-1 text-xs"
+      />
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          type="date"
+          lang="en-CA"
+          value={dueDate}
+          onChange={(e) => markDirty(setDueDate)(e.target.value)}
+          className="rounded-md border border-border bg-surface px-2 py-1 text-xs"
+        />
+        <input
+          type="time"
+          list="task-due-time-options"
+          value={dueTime}
+          onChange={(e) => markDirty(setDueTime)(e.target.value)}
+          className="rounded-md border border-border bg-surface px-2 py-1 text-xs"
+        />
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-1.5 rounded-md border border-border bg-surface px-2 py-1">
+          <span className="text-[10px] text-ink-soft">優先度</span>
+          {(Object.keys(PRIORITY_LABEL) as Priority[]).map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => markDirty(setPriority)(key)}
+              title={PRIORITY_LABEL[key]}
+              aria-label={`優先度: ${PRIORITY_LABEL[key]}`}
+              className={`flex h-5 w-5 items-center justify-center rounded-full ${
+                priority === key ? "ring-2 ring-accent ring-offset-1" : ""
+              }`}
+            >
+              <span className={`h-2.5 w-2.5 rounded-full ${PRIORITY_DOT[key]}`} />
+            </button>
+          ))}
+        </div>
+        <select
+          value={repeat}
+          onChange={(e) => markDirty(setRepeat)(e.target.value as TaskRepeat)}
+          className="rounded-md border border-border bg-surface px-2 py-1 text-xs"
+        >
+          {(Object.keys(REPEAT_LABEL) as TaskRepeat[]).map((key) => (
+            <option key={key} value={key}>
+              {REPEAT_LABEL[key]}
+            </option>
+          ))}
+        </select>
+      </div>
       <textarea
         value={description}
-        onChange={(e) => {
-          setDescription(e.target.value);
-          setSaved(false);
-        }}
+        onChange={(e) => markDirty(setDescription)(e.target.value)}
         placeholder="概要メモを入力..."
         rows={2}
         className="resize-none rounded-md border border-border bg-surface px-2 py-1 text-xs"
@@ -124,10 +203,7 @@ function TaskDetailPanel({
         <Link2 className="h-3.5 w-3.5 shrink-0 text-ink-soft" />
         <input
           value={fileUrl}
-          onChange={(e) => {
-            setFileUrl(e.target.value);
-            setSaved(false);
-          }}
+          onChange={(e) => markDirty(setFileUrl)(e.target.value)}
           placeholder="ファイルリンク(URL)を入力..."
           className="min-w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1 text-xs"
         />
@@ -175,7 +251,7 @@ function TaskListPanel({
     priority: Priority,
   ) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
-  onUpdate: (id: number, description: string | null, fileUrl: string | null) => Promise<void>;
+  onUpdate: (id: number, updates: TaskUpdates) => Promise<void>;
 }) {
   const [title, setTitle] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -450,7 +526,7 @@ export function Tasks({
     priority: Priority,
   ) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
-  onUpdate: (id: number, description: string | null, fileUrl: string | null) => Promise<void>;
+  onUpdate: (id: number, updates: TaskUpdates) => Promise<void>;
   memos: Memo[];
   onAddMemo: (content: string) => Promise<void>;
   onDeleteMemo: (id: number) => Promise<void>;

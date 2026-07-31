@@ -15,6 +15,24 @@ if (!result.rows.some((r) => r.name === "file_url")) {
   await client.execute("ALTER TABLE tasks ADD COLUMN file_url TEXT");
 }
 
+for (const table of ["reports", "weekly_reports", "monthly_reports"]) {
+  const info = await client.execute(`PRAGMA table_info(${table})`);
+  const columns = info.rows.map((r) => r.name);
+  if (!columns.includes("manual_content")) {
+    await client.execute(`ALTER TABLE ${table} ADD COLUMN manual_content TEXT`);
+    await client.execute(`ALTER TABLE ${table} ADD COLUMN generated_content TEXT`);
+    await client.execute(
+      `UPDATE ${table} SET manual_content = content WHERE generated_by = 'manual' AND content IS NOT NULL`,
+    );
+    await client.execute(
+      `UPDATE ${table} SET generated_content = content WHERE generated_by = 'gemini' AND content IS NOT NULL`,
+    );
+  }
+  if (columns.includes("content")) {
+    await client.execute(`ALTER TABLE ${table} DROP COLUMN content`);
+  }
+}
+
 client.close();
 
 console.log(`[init-db] ${url} を初期化しました。`);

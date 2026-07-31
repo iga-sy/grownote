@@ -1,13 +1,95 @@
 "use client";
 
 import { useState } from "react";
-import { Target, Plus } from "lucide-react";
+import { Target, Plus, Sparkles, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import type { Goal, GoalPeriod } from "@/lib/types";
+import type { GoalSuggestionGroup } from "@/lib/gemini";
+
+const CATEGORY_LABEL: Record<GoalSuggestionGroup["category"], string> = {
+  business: "業務面",
+  technical: "技術・知識面",
+};
+
+function SuggestButton({
+  period,
+  onPick,
+}: {
+  period: "weekly" | "monthly";
+  onPick: (title: string) => void;
+}) {
+  const [groups, setGroups] = useState<GoalSuggestionGroup[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSuggest() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/goals/suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ period }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error ?? "提案の生成に失敗しました。");
+        return;
+      }
+      setGroups(json.data as GoalSuggestionGroup[]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Button
+        type="button"
+        variant="ai"
+        onClick={handleSuggest}
+        disabled={loading}
+        className="w-fit !px-2.5 !py-1 !text-xs"
+      >
+        {loading ? (
+          <Loader2 className="h-3 w-3 animate-spin" />
+        ) : (
+          <Sparkles className="h-3 w-3" />
+        )}
+        業務面・技術面でAIに提案してもらう
+      </Button>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+      {groups && groups.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {groups.map((g) => (
+            <div key={g.category} className="flex flex-col gap-1">
+              <span className="text-[11px] font-semibold text-ink-soft">
+                {CATEGORY_LABEL[g.category]}
+              </span>
+              <ul className="flex flex-col gap-1">
+                {g.items.map((s, i) => (
+                  <li key={i}>
+                    <button
+                      type="button"
+                      onClick={() => onPick(s)}
+                      className="w-full rounded-md border border-border bg-accent-soft/30 px-2 py-1 text-left text-xs hover:bg-accent-soft/60"
+                    >
+                      {s}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function GoalTracker({
   goals,
@@ -65,15 +147,24 @@ export function GoalTracker({
       </form>
 
       {([
-        ["今週の目標", weekly],
-        ["今月の目標", monthly],
-        ["長期目標", longterm],
-      ] as const).map(([label, list]) => (
+        ["今週の目標", weekly, "weekly"],
+        ["今月の目標", monthly, "monthly"],
+        ["長期目標", longterm, null],
+      ] as const).map(([label, list, suggestPeriod]) => (
         <div key={label} className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-ink-soft">{label}</span>
             <Badge tone="accent">{list.length}</Badge>
           </div>
+          {suggestPeriod && (
+            <SuggestButton
+              period={suggestPeriod}
+              onPick={(s) => {
+                setTitle(s);
+                setPeriod(suggestPeriod);
+              }}
+            />
+          )}
           {list.length === 0 ? (
             <EmptyState message="目標がまだありません。" />
           ) : (

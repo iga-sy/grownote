@@ -80,14 +80,18 @@ ${taskLines}
 # 作業メモ(気付き・学び・困りごと)
 ${noteLines}
 
-# 出力形式(Markdown、この3見出しのみを使用)
+# 出力形式(Markdown、この4見出しのみを使用)
 ## 業務内容
 ## 学び・気づき
 ## 課題と解決策
+## その他
 
+- 各見出しの内容は箇条書き(「- 」)で簡潔に記録してください。文章を続けて書かないでください。
+- 「作業メモ」に記載された内容は一件たりとも省略せず、必ずいずれかの見出しに反映してください(表現を整えるのは構いませんが、内容そのものを削ってはいけません)。
+- 上記3つの見出し(業務内容/学び・気づき/課題と解決策)に当てはまらない内容(会議室予約などの事務連絡、TODO、決定事項、参考情報など)は、書き漏らさず「その他」にまとめてください。
 - 「困りごと」に該当するメモがあれば、それに対する具体的な解決策や次のアクションを提案してください。
-- 記録が少ない場合は、無理に水増しせず簡潔にまとめてください。
-- 丁寧な「です・ます」調で書いてください。`;
+- 記録が少ない場合は、無理に水増しせず簡潔にまとめてください。該当する内容がない見出しは「(記録なし)」と書いてください。
+- 丁寧な「です・ます」調ではなく、「だ・である」調の簡潔な箇条書きで書いてください。`;
 }
 
 export async function generateDailyReport(prompt: string): Promise<string> {
@@ -99,11 +103,25 @@ interface DailyReportForWeekly {
   content: string;
 }
 
+export interface DeliverableForReport {
+  title: string;
+  fileUrl?: string | null;
+}
+
+function formatDeliverableLines(deliverables: DeliverableForReport[]): string {
+  return deliverables.length
+    ? deliverables
+        .map((d) => `- ${d.title}${d.fileUrl ? `(${d.fileUrl})` : ""}`)
+        .join("\n")
+    : "(この期間に提出・完了した成果物の記録なし)";
+}
+
 export function buildWeeklyReportPrompt(
   weekStartDate: string,
   weekEndDate: string,
   dailyReports: DailyReportForWeekly[],
   weeklyGoalTitle: string | null,
+  deliverables: DeliverableForReport[],
 ): string {
   const dailyLines = dailyReports.length
     ? dailyReports
@@ -112,7 +130,7 @@ export function buildWeeklyReportPrompt(
     : "(この期間の日報の記録なし)";
 
   return `あなたは新入社員の週報作成を支援するアシスタントです。
-以下は ${weekStartDate} 〜 ${weekEndDate} の期間に書かれた日報です。これらを積み上げて集約し、週報を日本語で作成してください。
+以下は ${weekStartDate} 〜 ${weekEndDate} の期間に書かれた日報と、期間中に完了・提出した成果物です。これらを積み上げて集約し、週報を日本語で作成してください。
 
 # 今週の目標
 ${weeklyGoalTitle ?? "(今週の目標は設定されていません)"}
@@ -120,17 +138,22 @@ ${weeklyGoalTitle ?? "(今週の目標は設定されていません)"}
 # この期間の日報
 ${dailyLines}
 
+# この期間に提出・完了した成果物
+${formatDeliverableLines(deliverables)}
+
 # 出力形式(Markdown、この見出し構成のみを使用)
 ## 今週の計画・意識したこと
 ## ①やったこと
 ## ②分からなかった・確認したこと
 ## ③来週試すこと
+## ④成果物・提出物一覧
 
 - 日々の日報を単に並べるのではなく、共通するテーマや重要な出来事を要約してください。
 - 「②分からなかった・確認したこと」は、日報内の困りごとや疑問点を中心にまとめてください。
 - 「③来週試すこと」は①②を踏まえた具体的な次のアクションにしてください。
+- 「④成果物・提出物一覧」には、上記「この期間に提出・完了した成果物」を1件も省略せず、まとめたり間引いたりせず、箇条書きで逐一列挙してください。ファイルURLがあれば併記してください。
 - 記録が少ない場合は、無理に水増しせず簡潔にまとめてください。
-- 丁寧な「です・ます」調で書いてください。`;
+- 「だ・である」調で、できる限り箇条書き中心に書いてください。`;
 }
 
 export async function generateWeeklyReport(prompt: string): Promise<string> {
@@ -147,6 +170,7 @@ export function buildMonthlyReportPrompt(
   yearMonth: string,
   weeklyReports: WeeklyReportForMonthly[],
   monthlyGoalTitle: string | null,
+  deliverables: DeliverableForReport[],
 ): string {
   const weeklyLines = weeklyReports.length
     ? weeklyReports
@@ -155,13 +179,16 @@ export function buildMonthlyReportPrompt(
     : "(この月の週報の記録なし)";
 
   return `あなたは新入社員の月報作成を支援するアシスタントです。
-以下は ${yearMonth} の期間に作成された週報です。これらを積み上げて集約し、月報を日本語で作成してください。
+以下は ${yearMonth} の期間に作成された週報と、この月に完了・提出した成果物です。これらを積み上げて集約し、月報を日本語で作成してください。
 
 # 今月の目標
 ${monthlyGoalTitle ?? "(今月の目標は設定されていません)"}
 
 # この月の週報
 ${weeklyLines}
+
+# この月に提出・完了した成果物
+${formatDeliverableLines(deliverables)}
 
 # 評価にあたって参考にする技量の観点
 ${SKILL_FRAMEWORK}
@@ -173,11 +200,13 @@ ${SKILL_FRAMEWORK}
 ## 4. 今月の目標達成度合い(結果・事実)
 ## 5. 技量の観点での振り返り(上記5つの観点のうち特に発揮できたもの・課題が残ったものを具体的に)
 ## 6. 来月に向けての改善案
+## 7. 成果物・提出物一覧
 
 - 週報を単に並べるのではなく、月を通した傾向・成長・共通の課題を要約してください。
 - 「5. 技量の観点での振り返り」では、5つの観点のうち根拠となるエピソードがあるものだけを取り上げてください。
+- 「7. 成果物・提出物一覧」には、上記「この月に提出・完了した成果物」を1件も省略せず、まとめたり間引いたりせず、箇条書きで逐一列挙してください。ファイルURLがあれば併記してください。
 - 記録が少ない場合は、無理に水増しせず簡潔にまとめてください。
-- 丁寧な「です・ます」調で書いてください。`;
+- 「だ・である」調で、できる限り箇条書き中心に書いてください。`;
 }
 
 export async function generateMonthlyReport(prompt: string): Promise<string> {
@@ -245,9 +274,78 @@ ${SKILL_FRAMEWORK}
 - 長期目標 → 今月 → 今週 → 今日、の順に一貫性を持たせ、上位の目標を達成するために下位で何をすべきかが繋がるようにしてください。
 - 「今日・明日の具体的なアクション提案」は3つ程度、すぐに着手できる粒度で具体的に書いてください。
 - 目標が何も設定されていない場合は、その旨を伝え、まず何を設定すべきかを提案してください。
-- 丁寧な「です・ます」調で書いてください。`;
+- 「だ・である」調で、できる限り箇条書き中心に書いてください。`;
 }
 
 export async function generateRoadmap(prompt: string): Promise<string> {
   return callGemini(prompt);
+}
+
+interface ReportForGoalSuggestion {
+  label: string;
+  content: string;
+}
+
+export interface GoalSuggestionGroup {
+  category: "business" | "technical";
+  items: string[];
+}
+
+export function buildGoalSuggestionPrompt(
+  period: "weekly" | "monthly",
+  reports: ReportForGoalSuggestion[],
+): string {
+  const periodLabel = period === "weekly" ? "今週の目標" : "今月の目標";
+  const sourceLabel = period === "weekly" ? "直近の日報" : "直近の週報";
+
+  const reportLines = reports.length
+    ? reports.map((r) => `### ${r.label}\n${r.content}`).join("\n\n")
+    : `(${sourceLabel}の記録なし)`;
+
+  return `あなたは新入社員の育成を支援するコーチです。
+以下は${sourceLabel}です。この内容から読み取れる「まだ理解が浅い点」「繰り返し出てくる課題」「伸ばせそうな強み」を踏まえて、${periodLabel}の候補を「業務面」と「技術・知識面」の2つの観点に分けて、それぞれ3つずつ提案してください。
+
+- 業務面: 進め方・報連相・調整力・実行力・主体性など、仕事の進め方や取り組み姿勢に関する観点
+- 技術・知識面: 業務で使う技術・ツール・ドメイン知識の理解や習得に関する観点
+
+# ${sourceLabel}
+${reportLines}
+
+# 出力形式(この見出し構成のみを使用し、それ以外の説明文は一切出力しないこと)
+## 業務面
+- (候補1)
+- (候補2)
+- (候補3)
+## 技術・知識面
+- (候補1)
+- (候補2)
+- (候補3)
+
+- 各候補は15〜30文字程度で、「〜を〜できるようになる」のように具体的で測定しやすい表現にしてください。`;
+}
+
+export async function generateGoalSuggestions(
+  prompt: string,
+): Promise<GoalSuggestionGroup[]> {
+  const text = await callGemini(prompt);
+  const groups: GoalSuggestionGroup[] = [];
+  let current: GoalSuggestionGroup | null = null;
+
+  for (const rawLine of text.split("\n")) {
+    const line = rawLine.trim();
+    if (line.includes("業務面")) {
+      current = { category: "business", items: [] };
+      groups.push(current);
+    } else if (line.includes("技術") || line.includes("知識")) {
+      current = { category: "technical", items: [] };
+      groups.push(current);
+    } else if (line.startsWith("- ") && current) {
+      const item = line.slice(2).trim();
+      if (item) current.items.push(item);
+    }
+  }
+
+  return groups
+    .map((g) => ({ ...g, items: g.items.slice(0, 5) }))
+    .filter((g) => g.items.length > 0);
 }

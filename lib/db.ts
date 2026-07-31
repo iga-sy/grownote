@@ -11,6 +11,24 @@ const client = createClient({ url, authToken, intMode: "number" });
 
 let ready: Promise<void> | null = null;
 
+async function migrateReportTable(table: string): Promise<void> {
+  const info = await client.execute(`PRAGMA table_info(${table})`);
+  const columns = info.rows.map((r) => r.name as string);
+  if (!columns.includes("manual_content")) {
+    await client.execute(`ALTER TABLE ${table} ADD COLUMN manual_content TEXT`);
+    await client.execute(`ALTER TABLE ${table} ADD COLUMN generated_content TEXT`);
+    await client.execute(
+      `UPDATE ${table} SET manual_content = content WHERE generated_by = 'manual' AND content IS NOT NULL`,
+    );
+    await client.execute(
+      `UPDATE ${table} SET generated_content = content WHERE generated_by = 'gemini' AND content IS NOT NULL`,
+    );
+  }
+  if (columns.includes("content")) {
+    await client.execute(`ALTER TABLE ${table} DROP COLUMN content`);
+  }
+}
+
 async function ensureReady(): Promise<void> {
   if (!ready) {
     ready = (async () => {
@@ -21,6 +39,9 @@ async function ensureReady(): Promise<void> {
       if (!hasFileUrl) {
         await client.execute("ALTER TABLE tasks ADD COLUMN file_url TEXT");
       }
+      await migrateReportTable("reports");
+      await migrateReportTable("weekly_reports");
+      await migrateReportTable("monthly_reports");
     })();
   }
   return ready;

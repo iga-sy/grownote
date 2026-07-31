@@ -10,11 +10,20 @@ import { GradientIconBadge } from "@/components/ui/GradientIconBadge";
 import { todayIso, mondayOf } from "@/lib/date";
 import type { WeeklyReport } from "@/lib/types";
 
+type Tab = "manual" | "generated";
+
 function upsertByWeek(list: WeeklyReport[], item: WeeklyReport): WeeklyReport[] {
   const others = list.filter((r) => r.weekStartDate !== item.weekStartDate);
   return [item, ...others].sort((a, b) =>
     b.weekStartDate.localeCompare(a.weekStartDate),
   );
+}
+
+function defaultTab(report: WeeklyReport | undefined): Tab {
+  if (!report) return "manual";
+  if (report.manualContent) return "manual";
+  if (report.generatedContent) return "generated";
+  return "manual";
 }
 
 export function WeeklyReportsView({
@@ -25,20 +34,31 @@ export function WeeklyReportsView({
   const [reports, setReports] = useState(initialReports);
   const [pick, setPick] = useState(todayIso);
   const weekStart = mondayOf(pick);
+  const initialReport = reports.find((r) => r.weekStartDate === mondayOf(todayIso()));
+  const [tab, setTab] = useState<Tab>(defaultTab(initialReport));
   const [content, setContent] = useState(
     () =>
-      reports.find((r) => r.weekStartDate === mondayOf(todayIso()))?.content ??
+      (tab === "manual" ? initialReport?.manualContent : initialReport?.generatedContent) ??
       "",
   );
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function switchTab(nextTab: Tab, week: string = weekStart) {
+    const report = reports.find((r) => r.weekStartDate === week);
+    setTab(nextTab);
+    setContent(
+      (nextTab === "manual" ? report?.manualContent : report?.generatedContent) ?? "",
+    );
+  }
+
   function selectPick(date: string) {
     setPick(date);
     setError(null);
     const monday = mondayOf(date);
-    setContent(reports.find((r) => r.weekStartDate === monday)?.content ?? "");
+    const report = reports.find((r) => r.weekStartDate === monday);
+    switchTab(defaultTab(report), monday);
   }
 
   async function handleGenerate() {
@@ -55,8 +75,9 @@ export function WeeklyReportsView({
         setError(json.error ?? "生成に失敗しました。");
         return;
       }
-      setContent(json.data.content);
       setReports((prev) => upsertByWeek(prev, json.data as WeeklyReport));
+      setTab("generated");
+      setContent((json.data as WeeklyReport).generatedContent ?? "");
     } finally {
       setLoading(false);
     }
@@ -77,6 +98,7 @@ export function WeeklyReportsView({
         return;
       }
       setReports((prev) => upsertByWeek(prev, json.data as WeeklyReport));
+      setTab("manual");
     } finally {
       setSaving(false);
     }
@@ -103,9 +125,10 @@ export function WeeklyReportsView({
                     <span className="font-medium text-ink">
                       {r.weekStartDate} 〜 {r.weekEndDate}
                     </span>
-                    <Badge tone={r.generatedBy === "gemini" ? "accent" : "ink"}>
-                      {r.generatedBy === "gemini" ? "AI生成" : "手動"}
-                    </Badge>
+                    <div className="flex items-center gap-1">
+                      {r.manualContent && <Badge tone="ink">手動</Badge>}
+                      {r.generatedContent && <Badge tone="accent">AI生成</Badge>}
+                    </div>
                   </div>
                 </button>
               </li>
@@ -148,6 +171,27 @@ export function WeeklyReportsView({
           </Button>
         </div>
 
+        <div className="flex w-fit gap-1 rounded-lg bg-accent-soft/40 p-1">
+          <button
+            type="button"
+            onClick={() => switchTab("manual")}
+            className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+              tab === "manual" ? "bg-surface text-ink shadow-sm" : "text-ink-soft hover:text-ink"
+            }`}
+          >
+            手動
+          </button>
+          <button
+            type="button"
+            onClick={() => switchTab("generated")}
+            className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+              tab === "generated" ? "bg-surface text-ink shadow-sm" : "text-ink-soft hover:text-ink"
+            }`}
+          >
+            AI生成
+          </button>
+        </div>
+
         {error && (
           <p className="rounded-md bg-red-50 px-2 py-1.5 text-xs text-red-600">
             {error}
@@ -168,7 +212,7 @@ export function WeeklyReportsView({
           disabled={saving || !content.trim()}
           className="self-end"
         >
-          保存
+          手動版として保存
         </Button>
       </Card>
     </div>

@@ -18,14 +18,15 @@ export async function POST(request: Request) {
 
   const weeklyReports = await db
     .prepare(
-      `SELECT week_start_date, week_end_date, content FROM weekly_reports
+      `SELECT week_start_date, week_end_date, COALESCE(manual_content, generated_content) AS content
+       FROM weekly_reports
        WHERE strftime('%Y-%m', week_start_date) = ?
        ORDER BY week_start_date`,
     )
     .all(yearMonth) as {
     week_start_date: string;
     week_end_date: string;
-    content: string;
+    content: string | null;
   }[];
 
   const monthlyGoal = await db
@@ -34,14 +35,25 @@ export async function POST(request: Request) {
     )
     .get() as { title: string } | undefined;
 
+  const deliverables = await db
+    .prepare(
+      `SELECT title, file_url FROM tasks
+       WHERE is_done = 1 AND strftime('%Y-%m', completed_at) = ?
+       ORDER BY completed_at`,
+    )
+    .all(yearMonth) as { title: string; file_url: string | null }[];
+
   const prompt = buildMonthlyReportPrompt(
     yearMonth,
-    weeklyReports.map((w) => ({
-      weekStartDate: w.week_start_date,
-      weekEndDate: w.week_end_date,
-      content: w.content,
-    })),
+    weeklyReports
+      .filter((w) => w.content)
+      .map((w) => ({
+        weekStartDate: w.week_start_date,
+        weekEndDate: w.week_end_date,
+        content: w.content as string,
+      })),
     monthlyGoal?.title ?? null,
+    deliverables.map((d) => ({ title: d.title, fileUrl: d.file_url })),
   );
 
   let content: string;
@@ -54,10 +66,10 @@ export async function POST(request: Request) {
   }
 
   await db.prepare(
-    `INSERT INTO monthly_reports (year_month, content, generated_by)
+    `INSERT INTO monthly_reports (year_month, generated_content, generated_by)
      VALUES (?, ?, 'gemini')
      ON CONFLICT(year_month) DO UPDATE SET
-       content = excluded.content,
+       generated_content = excluded.generated_content,
        generated_by = 'gemini',
        updated_at = datetime('now', 'localtime')`,
   ).run(yearMonth, content);

@@ -21,10 +21,10 @@ export async function PATCH(
     .get(week) as { end_date: string };
 
   await db.prepare(
-    `INSERT INTO weekly_reports (week_start_date, week_end_date, content, generated_by)
+    `INSERT INTO weekly_reports (week_start_date, week_end_date, manual_content, generated_by)
      VALUES (?, ?, ?, 'manual')
      ON CONFLICT(week_start_date) DO UPDATE SET
-       content = excluded.content,
+       manual_content = excluded.manual_content,
        generated_by = 'manual',
        updated_at = datetime('now', 'localtime')`,
   ).run(week, weekEndDate, content);

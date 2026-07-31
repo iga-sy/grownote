@@ -72,7 +72,8 @@ CREATE TABLE IF NOT EXISTS goals (
 CREATE TABLE IF NOT EXISTS reports (
   id                INTEGER PRIMARY KEY AUTOINCREMENT,
   report_date       TEXT NOT NULL UNIQUE,
-  content           TEXT NOT NULL,
+  manual_content    TEXT,
+  generated_content TEXT,
   task_ids_snapshot TEXT,
   generated_by      TEXT NOT NULL DEFAULT 'gemini' CHECK (generated_by IN ('gemini','manual')),
   created_at        TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
@@ -80,22 +81,24 @@ CREATE TABLE IF NOT EXISTS reports (
 );
 
 CREATE TABLE IF NOT EXISTS weekly_reports (
-  id              INTEGER PRIMARY KEY AUTOINCREMENT,
-  week_start_date TEXT NOT NULL UNIQUE,
-  week_end_date   TEXT NOT NULL,
-  content         TEXT NOT NULL,
-  generated_by    TEXT NOT NULL DEFAULT 'gemini' CHECK (generated_by IN ('gemini','manual')),
-  created_at      TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
-  updated_at      TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+  id                INTEGER PRIMARY KEY AUTOINCREMENT,
+  week_start_date   TEXT NOT NULL UNIQUE,
+  week_end_date     TEXT NOT NULL,
+  manual_content    TEXT,
+  generated_content TEXT,
+  generated_by      TEXT NOT NULL DEFAULT 'gemini' CHECK (generated_by IN ('gemini','manual')),
+  created_at        TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+  updated_at        TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 
 CREATE TABLE IF NOT EXISTS monthly_reports (
-  id           INTEGER PRIMARY KEY AUTOINCREMENT,
-  year_month   TEXT NOT NULL UNIQUE,
-  content      TEXT NOT NULL,
-  generated_by TEXT NOT NULL DEFAULT 'gemini' CHECK (generated_by IN ('gemini','manual')),
-  created_at   TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
-  updated_at   TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+  id                INTEGER PRIMARY KEY AUTOINCREMENT,
+  year_month        TEXT NOT NULL UNIQUE,
+  manual_content    TEXT,
+  generated_content TEXT,
+  generated_by      TEXT NOT NULL DEFAULT 'gemini' CHECK (generated_by IN ('gemini','manual')),
+  created_at        TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+  updated_at        TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 
 CREATE TABLE IF NOT EXISTS roadmaps (

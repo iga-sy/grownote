@@ -22,11 +22,11 @@ export async function POST(request: Request) {
 
   const dailyReports = await db
     .prepare(
-      `SELECT report_date, content FROM reports
+      `SELECT report_date, COALESCE(manual_content, generated_content) AS content FROM reports
        WHERE report_date BETWEEN ? AND ?
        ORDER BY report_date`,
     )
-    .all(weekStartDate, weekEndDate) as { report_date: string; content: string }[];
+    .all(weekStartDate, weekEndDate) as { report_date: string; content: string | null }[];
 
   const weeklyGoal = await db
     .prepare(
@@ -34,11 +34,22 @@ export async function POST(request: Request) {
     )
     .get() as { title: string } | undefined;
 
+  const deliverables = await db
+    .prepare(
+      `SELECT title, file_url FROM tasks
+       WHERE is_done = 1 AND date(completed_at) BETWEEN ? AND ?
+       ORDER BY completed_at`,
+    )
+    .all(weekStartDate, weekEndDate) as { title: string; file_url: string | null }[];
+
   const prompt = buildWeeklyReportPrompt(
     weekStartDate,
     weekEndDate,
-    dailyReports.map((r) => ({ date: r.report_date, content: r.content })),
+    dailyReports
+      .filter((r) => r.content)
+      .map((r) => ({ date: r.report_date, content: r.content as string })),
     weeklyGoal?.title ?? null,
+    deliverables.map((d) => ({ title: d.title, fileUrl: d.file_url })),
   );
 
   let content: string;
@@ -51,11 +62,11 @@ export async function POST(request: Request) {
   }
 
   await db.prepare(
-    `INSERT INTO weekly_reports (week_start_date, week_end_date, content, generated_by)
+    `INSERT INTO weekly_reports (week_start_date, week_end_date, generated_content, generated_by)
      VALUES (?, ?, ?, 'gemini')
      ON CONFLICT(week_start_date) DO UPDATE SET
        week_end_date = excluded.week_end_date,
-       content = excluded.content,
+       generated_content = excluded.generated_content,
        generated_by = 'gemini',
        updated_at = datetime('now', 'localtime')`,
   ).run(weekStartDate, weekEndDate, content);

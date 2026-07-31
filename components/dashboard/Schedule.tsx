@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarClock, ChevronLeft, ChevronRight, Trash2, Upload } from "lucide-react";
+import { CalendarClock, ChevronLeft, ChevronRight, Pencil, Trash2, Upload } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -25,12 +25,14 @@ export function Schedule({
   refreshKey,
   selectedScheduleId,
   onSelectSchedule,
+  onEditSchedule,
 }: {
   date: string;
   onDateChange: (date: string) => void;
   refreshKey: number;
   selectedScheduleId: number | null;
   onSelectSchedule: (schedule: ScheduleItem) => void;
+  onEditSchedule: (schedule: ScheduleItem) => void;
 }) {
   const [items, setItems] = useState<ScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -217,6 +219,16 @@ export function Schedule({
                 <span className="min-w-0 flex-1 truncate font-medium">
                   {s.title}
                 </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEditSchedule(s);
+                  }}
+                  aria-label="編集"
+                  className="shrink-0 text-ink-soft hover:text-accent-dark"
+                >
+                  <Pencil className="h-3 w-3" />
+                </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

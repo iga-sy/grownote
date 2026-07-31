@@ -60,10 +60,10 @@ export async function POST(request: Request) {
   const taskIdsSnapshot = JSON.stringify(completedTasks.map((t) => t.id));
 
   await db.prepare(
-    `INSERT INTO reports (report_date, content, task_ids_snapshot, generated_by)
+    `INSERT INTO reports (report_date, generated_content, task_ids_snapshot, generated_by)
      VALUES (?, ?, ?, 'gemini')
      ON CONFLICT(report_date) DO UPDATE SET
-       content = excluded.content,
+       generated_content = excluded.generated_content,
        task_ids_snapshot = excluded.task_ids_snapshot,
        generated_by = 'gemini',
        updated_at = datetime('now', 'localtime')`,

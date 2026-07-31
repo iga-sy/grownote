@@ -49,63 +49,69 @@ export function WorkMemo({
 
   return (
     <Card title="リアルタイム作業メモ" icon={<NotebookPen className="h-4 w-4" />}>
-      {!selectedSchedule ? (
-        <EmptyState message="左のスケジュールから予定を選択してください。" />
-      ) : (
-        <>
-          <p className="truncate text-xs text-ink-soft">
+      <p className="truncate text-xs text-ink-soft">
+        {selectedSchedule ? (
+          <>
             対象の予定: <span className="font-medium">{selectedSchedule.title}</span>
             <span className="ml-1 text-ink-soft">
               ({selectedSchedule.startTime}
               {selectedSchedule.endTime ? `-${selectedSchedule.endTime}` : ""})
             </span>
-          </p>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value as NoteCategory)}
-              className="rounded-md border border-border bg-surface px-2 py-1 text-sm"
-            >
-              <option value="insight">気付き</option>
-              <option value="learning">学び</option>
-              <option value="problem">困りごと</option>
-              <option value="note">メモ</option>
-            </select>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="気付き・学び・困りごとを記録..."
-              rows={2}
-              className="resize-none rounded-md border border-border bg-surface px-2 py-1 text-sm"
-            />
-            <Button type="submit" disabled={submitting} className="self-end">
-              <Send className="h-4 w-4" />
-              投稿
-            </Button>
-          </form>
+          </>
+        ) : (
+          "予定に紐付かない、自由な気づきメモです。"
+        )}
+      </p>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value as NoteCategory)}
+          className="rounded-md border border-border bg-surface px-2 py-1 text-sm"
+        >
+          <option value="insight">気付き</option>
+          <option value="learning">学び</option>
+          <option value="problem">困りごと</option>
+          <option value="note">メモ</option>
+        </select>
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="気付き・学び・困りごとを記録..."
+          rows={2}
+          className="resize-none rounded-md border border-border bg-surface px-2 py-1 text-sm"
+        />
+        <Button type="submit" disabled={submitting} className="self-end">
+          <Send className="h-4 w-4" />
+          投稿
+        </Button>
+      </form>
 
-          {notes.length === 0 ? (
-            <EmptyState message="この予定のメモはまだありません。" />
-          ) : (
-            <ul className="flex flex-col gap-2 overflow-y-auto">
-              {notes.map((n) => (
-                <li key={n.id} className="rounded-md bg-accent-soft/50 p-2 text-sm">
-                  <div className="mb-1 flex items-center justify-between">
-                    <Badge tone={CATEGORY_TONE[n.category]}>
-                      {CATEGORY_LABEL[n.category]}
-                    </Badge>
-                    <span className="text-xs text-ink-soft">
-                      {n.createdAt.slice(0, 16).replace("T", " ")}
-                    </span>
-                  </div>
-                  <p className="whitespace-pre-wrap break-words text-ink">
-                    {n.content}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </>
+      {notes.length === 0 ? (
+        <EmptyState
+          message={
+            selectedSchedule
+              ? "この予定のメモはまだありません。"
+              : "メモはまだありません。"
+          }
+        />
+      ) : (
+        <ul className="flex flex-col gap-2 overflow-y-auto">
+          {notes.map((n) => (
+            <li key={n.id} className="rounded-md bg-accent-soft/50 p-2 text-sm">
+              <div className="mb-1 flex items-center justify-between">
+                <Badge tone={CATEGORY_TONE[n.category]}>
+                  {CATEGORY_LABEL[n.category]}
+                </Badge>
+                <span className="text-xs text-ink-soft">
+                  {n.createdAt.slice(0, 16).replace("T", " ")}
+                </span>
+              </div>
+              <p className="whitespace-pre-wrap break-words text-ink">
+                {n.content}
+              </p>
+            </li>
+          ))}
+        </ul>
       )}
     </Card>
   );

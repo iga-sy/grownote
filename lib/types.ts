@@ -66,7 +66,8 @@ export interface Goal {
 export interface Report {
   id: number;
   reportDate: string;
-  content: string;
+  manualContent: string | null;
+  generatedContent: string | null;
   taskIdsSnapshot: number[];
   generatedBy: "gemini" | "manual";
   createdAt: string;
@@ -77,7 +78,8 @@ export interface WeeklyReport {
   id: number;
   weekStartDate: string;
   weekEndDate: string;
-  content: string;
+  manualContent: string | null;
+  generatedContent: string | null;
   generatedBy: "gemini" | "manual";
   createdAt: string;
   updatedAt: string;
@@ -86,7 +88,8 @@ export interface WeeklyReport {
 export interface MonthlyReport {
   id: number;
   yearMonth: string;
-  content: string;
+  manualContent: string | null;
+  generatedContent: string | null;
   generatedBy: "gemini" | "manual";
   createdAt: string;
   updatedAt: string;
@@ -161,7 +164,8 @@ interface GoalRow {
 interface ReportRow {
   id: number;
   report_date: string;
-  content: string;
+  manual_content: string | null;
+  generated_content: string | null;
   task_ids_snapshot: string | null;
   generated_by: string;
   created_at: string;
@@ -172,7 +176,8 @@ interface WeeklyReportRow {
   id: number;
   week_start_date: string;
   week_end_date: string;
-  content: string;
+  manual_content: string | null;
+  generated_content: string | null;
   generated_by: string;
   created_at: string;
   updated_at: string;
@@ -181,7 +186,8 @@ interface WeeklyReportRow {
 interface MonthlyReportRow {
   id: number;
   year_month: string;
-  content: string;
+  manual_content: string | null;
+  generated_content: string | null;
   generated_by: string;
   created_at: string;
   updated_at: string;
@@ -273,7 +279,8 @@ export function mapReport(row: ReportRow): Report {
   return {
     id: row.id,
     reportDate: row.report_date,
-    content: row.content,
+    manualContent: row.manual_content,
+    generatedContent: row.generated_content,
     taskIdsSnapshot: row.task_ids_snapshot
       ? (JSON.parse(row.task_ids_snapshot) as number[])
       : [],
@@ -288,7 +295,8 @@ export function mapWeeklyReport(row: WeeklyReportRow): WeeklyReport {
     id: row.id,
     weekStartDate: row.week_start_date,
     weekEndDate: row.week_end_date,
-    content: row.content,
+    manualContent: row.manual_content,
+    generatedContent: row.generated_content,
     generatedBy: row.generated_by as "gemini" | "manual",
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -299,7 +307,8 @@ export function mapMonthlyReport(row: MonthlyReportRow): MonthlyReport {
   return {
     id: row.id,
     yearMonth: row.year_month,
-    content: row.content,
+    manualContent: row.manual_content,
+    generatedContent: row.generated_content,
     generatedBy: row.generated_by as "gemini" | "manual",
     createdAt: row.created_at,
     updatedAt: row.updated_at,

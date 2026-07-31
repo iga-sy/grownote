@@ -17,10 +17,10 @@ export async function PATCH(
   }
 
   await db.prepare(
-    `INSERT INTO monthly_reports (year_month, content, generated_by)
+    `INSERT INTO monthly_reports (year_month, manual_content, generated_by)
      VALUES (?, ?, 'manual')
      ON CONFLICT(year_month) DO UPDATE SET
-       content = excluded.content,
+       manual_content = excluded.manual_content,
        generated_by = 'manual',
        updated_at = datetime('now', 'localtime')`,
   ).run(month, content);

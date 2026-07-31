@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { QuickLinks } from "@/components/dashboard/QuickLinks";
 import { Schedule } from "@/components/dashboard/Schedule";
 import { ScheduleQuickAdd } from "@/components/dashboard/ScheduleQuickAdd";
-import { Tasks } from "@/components/dashboard/Tasks";
+import { Tasks, type TaskUpdates } from "@/components/dashboard/Tasks";
 import { WorkMemo } from "@/components/dashboard/WorkMemo";
 import { todayIso } from "@/lib/date";
 import type {
@@ -70,6 +70,9 @@ export function DashboardClient({
     useState<ScheduleItem | null>(null);
   const [scheduleDate, setScheduleDate] = useState(todayIso);
   const [scheduleRefreshKey, setScheduleRefreshKey] = useState(0);
+  const [editingSchedule, setEditingSchedule] = useState<ScheduleItem | null>(
+    null,
+  );
 
   const notesForSelectedSchedule = useMemo(
     () => notes.filter((n) => n.scheduleId === selectedScheduleId),
@@ -115,15 +118,8 @@ export function DashboardClient({
     }
   }
 
-  async function handleUpdateTask(
-    id: number,
-    description: string | null,
-    fileUrl: string | null,
-  ) {
-    const updated = await patchJson<Task>(`/api/tasks/${id}`, {
-      description,
-      fileUrl,
-    });
+  async function handleUpdateTask(id: number, updates: TaskUpdates) {
+    const updated = await patchJson<Task>(`/api/tasks/${id}`, updates);
     setTasks((prev) => prev.map((t) => (t.id === id ? updated : t)));
   }
 
@@ -151,6 +147,28 @@ export function DashboardClient({
     setScheduleRefreshKey((k) => k + 1);
   }
 
+  function handleStartEditSchedule(schedule: ScheduleItem) {
+    setEditingSchedule(schedule);
+  }
+
+  async function handleUpdateSchedule(
+    id: number,
+    title: string,
+    date: string,
+    startTime: string,
+    endTime: string | null,
+  ) {
+    await patchJson<ScheduleItem>(`/api/schedules/${id}`, {
+      title,
+      date,
+      startTime,
+      endTime,
+    });
+    setEditingSchedule(null);
+    setScheduleDate(date);
+    setScheduleRefreshKey((k) => k + 1);
+  }
+
   async function handleAddMemo(content: string) {
     const created = await postJson<Memo>("/api/memos", { content });
     setMemos((prev) => [created, ...prev]);
@@ -162,7 +180,6 @@ export function DashboardClient({
   }
 
   async function handleAddNote(category: NoteCategory, content: string) {
-    if (selectedScheduleId === null) return;
     const created = await postJson<Note>("/api/notes", {
       scheduleId: selectedScheduleId,
       category,
@@ -205,6 +222,7 @@ export function DashboardClient({
           refreshKey={scheduleRefreshKey}
           selectedScheduleId={selectedScheduleId}
           onSelectSchedule={handleSelectSchedule}
+          onEditSchedule={handleStartEditSchedule}
         />
 
         <div className="flex flex-col gap-4">
@@ -212,6 +230,9 @@ export function DashboardClient({
             date={scheduleDate}
             onDateChange={setScheduleDate}
             onAdd={handleAddSchedule}
+            editingSchedule={editingSchedule}
+            onUpdate={handleUpdateSchedule}
+            onCancelEdit={() => setEditingSchedule(null)}
           />
           <WorkMemo
             selectedSchedule={selectedScheduleCache}

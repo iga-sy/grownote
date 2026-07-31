@@ -10,12 +10,21 @@ import { GradientIconBadge } from "@/components/ui/GradientIconBadge";
 import { currentYearMonth } from "@/lib/date";
 import type { MonthlyReport } from "@/lib/types";
 
+type Tab = "manual" | "generated";
+
 function upsertByMonth(
   list: MonthlyReport[],
   item: MonthlyReport,
 ): MonthlyReport[] {
   const others = list.filter((r) => r.yearMonth !== item.yearMonth);
   return [item, ...others].sort((a, b) => b.yearMonth.localeCompare(a.yearMonth));
+}
+
+function defaultTab(report: MonthlyReport | undefined): Tab {
+  if (!report) return "manual";
+  if (report.manualContent) return "manual";
+  if (report.generatedContent) return "generated";
+  return "manual";
 }
 
 export function MonthlyReportsView({
@@ -25,17 +34,30 @@ export function MonthlyReportsView({
 }) {
   const [reports, setReports] = useState(initialReports);
   const [yearMonth, setYearMonth] = useState(currentYearMonth);
+  const initialReport = reports.find((r) => r.yearMonth === currentYearMonth());
+  const [tab, setTab] = useState<Tab>(defaultTab(initialReport));
   const [content, setContent] = useState(
-    () => reports.find((r) => r.yearMonth === currentYearMonth())?.content ?? "",
+    () =>
+      (tab === "manual" ? initialReport?.manualContent : initialReport?.generatedContent) ??
+      "",
   );
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function switchTab(nextTab: Tab, month: string = yearMonth) {
+    const report = reports.find((r) => r.yearMonth === month);
+    setTab(nextTab);
+    setContent(
+      (nextTab === "manual" ? report?.manualContent : report?.generatedContent) ?? "",
+    );
+  }
+
   function selectMonth(value: string) {
     setYearMonth(value);
     setError(null);
-    setContent(reports.find((r) => r.yearMonth === value)?.content ?? "");
+    const report = reports.find((r) => r.yearMonth === value);
+    switchTab(defaultTab(report), value);
   }
 
   async function handleGenerate() {
@@ -52,8 +74,9 @@ export function MonthlyReportsView({
         setError(json.error ?? "生成に失敗しました。");
         return;
       }
-      setContent(json.data.content);
       setReports((prev) => upsertByMonth(prev, json.data as MonthlyReport));
+      setTab("generated");
+      setContent((json.data as MonthlyReport).generatedContent ?? "");
     } finally {
       setLoading(false);
     }
@@ -74,6 +97,7 @@ export function MonthlyReportsView({
         return;
       }
       setReports((prev) => upsertByMonth(prev, json.data as MonthlyReport));
+      setTab("manual");
     } finally {
       setSaving(false);
     }
@@ -98,9 +122,10 @@ export function MonthlyReportsView({
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-medium text-ink">{r.yearMonth}</span>
-                    <Badge tone={r.generatedBy === "gemini" ? "accent" : "ink"}>
-                      {r.generatedBy === "gemini" ? "AI生成" : "手動"}
-                    </Badge>
+                    <div className="flex items-center gap-1">
+                      {r.manualContent && <Badge tone="ink">手動</Badge>}
+                      {r.generatedContent && <Badge tone="accent">AI生成</Badge>}
+                    </div>
                   </div>
                 </button>
               </li>
@@ -140,6 +165,27 @@ export function MonthlyReportsView({
           </Button>
         </div>
 
+        <div className="flex w-fit gap-1 rounded-lg bg-accent-soft/40 p-1">
+          <button
+            type="button"
+            onClick={() => switchTab("manual")}
+            className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+              tab === "manual" ? "bg-surface text-ink shadow-sm" : "text-ink-soft hover:text-ink"
+            }`}
+          >
+            手動
+          </button>
+          <button
+            type="button"
+            onClick={() => switchTab("generated")}
+            className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+              tab === "generated" ? "bg-surface text-ink shadow-sm" : "text-ink-soft hover:text-ink"
+            }`}
+          >
+            AI生成
+          </button>
+        </div>
+
         {error && (
           <p className="rounded-md bg-red-50 px-2 py-1.5 text-xs text-red-600">
             {error}
@@ -160,7 +206,7 @@ export function MonthlyReportsView({
           disabled={saving || !content.trim()}
           className="self-end"
         >
-          保存
+          手動版として保存
         </Button>
       </Card>
     </div>
