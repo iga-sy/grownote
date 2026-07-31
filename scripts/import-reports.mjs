@@ -1,6 +1,8 @@
 import { createClient } from "@libsql/client";
 
-const client = createClient({ url: "file:./db/shinnyu.db" });
+const url = process.env.TURSO_DATABASE_URL ?? "file:./db/shinnyu.db";
+const authToken = process.env.TURSO_AUTH_TOKEN;
+const client = createClient({ url, authToken, intMode: "number" });
 
 const dailyReports = [
   {
@@ -405,20 +407,20 @@ const weeklyReport = {
 let dailyCount = 0;
 for (const r of dailyReports) {
   await client.execute({
-    sql: `INSERT INTO reports (report_date, content, generated_by)
+    sql: `INSERT INTO reports (report_date, manual_content, generated_by)
           VALUES (?, ?, 'manual')
-          ON CONFLICT(report_date) DO UPDATE SET content = excluded.content, updated_at = datetime('now', 'localtime')`,
+          ON CONFLICT(report_date) DO UPDATE SET manual_content = excluded.manual_content, updated_at = datetime('now', 'localtime')`,
     args: [r.date, r.content],
   });
   dailyCount++;
 }
 
 await client.execute({
-  sql: `INSERT INTO weekly_reports (week_start_date, week_end_date, content, generated_by)
+  sql: `INSERT INTO weekly_reports (week_start_date, week_end_date, manual_content, generated_by)
         VALUES (?, ?, ?, 'manual')
-        ON CONFLICT(week_start_date) DO UPDATE SET content = excluded.content, updated_at = datetime('now', 'localtime')`,
+        ON CONFLICT(week_start_date) DO UPDATE SET manual_content = excluded.manual_content, updated_at = datetime('now', 'localtime')`,
   args: [weeklyReport.weekStart, weeklyReport.weekEnd, weeklyReport.content],
 });
 
-console.log(`[import] 日報 ${dailyCount}件、週報 1件 を登録しました。`);
+console.log(`[import] ${url} に 日報 ${dailyCount}件、週報 1件 を登録しました。`);
 client.close();
