@@ -4,7 +4,7 @@ import { useState } from "react";
 import { CalendarClock, CalendarRange } from "lucide-react";
 import { WeeklyReportsView } from "@/components/reports/WeeklyReportsView";
 import { MonthlyReportsView } from "@/components/reports/MonthlyReportsView";
-import type { MonthlyReport, WeeklyReport } from "@/lib/types";
+import type { Goal, MonthlyReport, WeeklyReport } from "@/lib/types";
 
 function TabButton({
   active,
@@ -36,9 +36,11 @@ function TabButton({
 export function PeriodicReportsView({
   initialWeeklyReports,
   initialMonthlyReports,
+  initialGoals,
 }: {
   initialWeeklyReports: WeeklyReport[];
   initialMonthlyReports: MonthlyReport[];
+  initialGoals: Goal[];
 }) {
   const [tab, setTab] = useState<"weekly" | "monthly">("weekly");
 
@@ -59,11 +61,32 @@ export function PeriodicReportsView({
         />
       </div>
 
-      {tab === "weekly" ? (
-        <WeeklyReportsView initialReports={initialWeeklyReports} />
-      ) : (
-        <MonthlyReportsView initialReports={initialMonthlyReports} />
-      )}
+      <div className="relative flex flex-1 flex-col">
+        <div
+          className={
+            tab === "weekly"
+              ? "flex flex-1 flex-col"
+              : "invisible pointer-events-none absolute inset-0 flex flex-1 flex-col overflow-hidden"
+          }
+        >
+          <WeeklyReportsView
+            initialReports={initialWeeklyReports}
+            initialGoals={initialGoals}
+          />
+        </div>
+        <div
+          className={
+            tab === "monthly"
+              ? "flex flex-1 flex-col"
+              : "invisible pointer-events-none absolute inset-0 flex flex-1 flex-col overflow-hidden"
+          }
+        >
+          <MonthlyReportsView
+            initialReports={initialMonthlyReports}
+            initialGoals={initialGoals}
+          />
+        </div>
+      </div>
     </div>
   );
 }

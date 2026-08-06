@@ -97,11 +97,16 @@ export function GoalTracker({
   onProgressChange,
 }: {
   goals: Goal[];
-  onAdd: (title: string, period: GoalPeriod) => Promise<void>;
+  onAdd: (
+    title: string,
+    period: GoalPeriod,
+    parentGoalId?: number | null,
+  ) => Promise<void>;
   onProgressChange: (id: number, progress: number) => Promise<void>;
 }) {
   const [title, setTitle] = useState("");
   const [period, setPeriod] = useState<GoalPeriod>("weekly");
+  const [parentGoalId, setParentGoalId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -109,7 +114,7 @@ export function GoalTracker({
     if (!title.trim()) return;
     setSubmitting(true);
     try {
-      await onAdd(title.trim(), period);
+      await onAdd(title.trim(), period, period === "weekly" ? parentGoalId : null);
       setTitle("");
     } finally {
       setSubmitting(false);
@@ -119,6 +124,7 @@ export function GoalTracker({
   const weekly = goals.filter((g) => g.period === "weekly");
   const monthly = goals.filter((g) => g.period === "monthly");
   const longterm = goals.filter((g) => g.period === "longterm");
+  const monthlyTitleById = new Map(monthly.map((g) => [g.id, g.title]));
 
   return (
     <Card title="目標管理" icon={<Target className="h-4 w-4" />}>
@@ -132,7 +138,10 @@ export function GoalTracker({
         <div className="flex items-center gap-2">
           <select
             value={period}
-            onChange={(e) => setPeriod(e.target.value as GoalPeriod)}
+            onChange={(e) => {
+              setPeriod(e.target.value as GoalPeriod);
+              setParentGoalId(null);
+            }}
             className="rounded-md border border-border bg-surface px-2 py-1 text-sm"
           >
             <option value="weekly">今週</option>
@@ -144,6 +153,22 @@ export function GoalTracker({
             追加
           </Button>
         </div>
+        {period === "weekly" && (
+          <select
+            value={parentGoalId ?? ""}
+            onChange={(e) =>
+              setParentGoalId(e.target.value ? Number(e.target.value) : null)
+            }
+            className="rounded-md border border-border bg-surface px-2 py-1 text-xs text-ink-soft"
+          >
+            <option value="">紐づける月間目標を選択(任意)</option>
+            {monthly.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.title}
+              </option>
+            ))}
+          </select>
+        )}
       </form>
 
       {([
@@ -174,6 +199,11 @@ export function GoalTracker({
                   <ProgressRing value={g.progress} size={44} strokeWidth={5} />
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
                     <span className="truncate text-sm">{g.title}</span>
+                    {g.period === "weekly" && g.parentGoalId && (
+                      <span className="truncate text-[11px] text-ink-soft">
+                        ↳ 月間目標: {monthlyTitleById.get(g.parentGoalId) ?? "(削除済み)"}
+                      </span>
+                    )}
                     <input
                       type="range"
                       min={0}

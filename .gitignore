@@ -46,3 +46,7 @@ next-env.d.ts
 /db/*.db-journal
 /db/*.db-wal
 /db/*.db-shm
+
+# personal data (contains real names)
+*.xlsx
+*.xls

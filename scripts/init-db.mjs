@@ -15,6 +15,34 @@ if (!result.rows.some((r) => r.name === "file_url")) {
   await client.execute("ALTER TABLE tasks ADD COLUMN file_url TEXT");
 }
 
+const goalsInfo = await client.execute("PRAGMA table_info(goals)");
+if (!goalsInfo.rows.some((r) => r.name === "parent_goal_id")) {
+  await client.execute(
+    "ALTER TABLE goals ADD COLUMN parent_goal_id INTEGER REFERENCES goals(id) ON DELETE SET NULL",
+  );
+}
+
+const goalReviewsInfo = await client.execute("PRAGMA table_info(goal_reviews)");
+if (
+  goalReviewsInfo.rows.length > 0 &&
+  !goalReviewsInfo.rows.some((r) => r.name === "manual_content")
+) {
+  await client.execute("DROP TABLE goal_reviews");
+  await client.execute(`
+    CREATE TABLE goal_reviews (
+      id                INTEGER PRIMARY KEY AUTOINCREMENT,
+      scope             TEXT NOT NULL CHECK (scope IN ('weekly','monthly')),
+      period_key        TEXT NOT NULL,
+      manual_content    TEXT,
+      generated_content TEXT,
+      generated_by      TEXT NOT NULL DEFAULT 'gemini' CHECK (generated_by IN ('gemini','manual')),
+      created_at        TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+      updated_at        TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+      UNIQUE(scope, period_key)
+    )
+  `);
+}
+
 for (const table of ["reports", "weekly_reports", "monthly_reports"]) {
   const info = await client.execute(`PRAGMA table_info(${table})`);
   const columns = info.rows.map((r) => r.name);

@@ -44,8 +44,16 @@ export function RoadmapView({ initialGoals }: { initialGoals: Goal[] }) {
       .finally(() => setLoading(false));
   }, []);
 
-  async function handleAddGoal(title: string, period: GoalPeriod) {
-    const created = await postJson<Goal>("/api/goals", { title, period });
+  async function handleAddGoal(
+    title: string,
+    period: GoalPeriod,
+    parentGoalId?: number | null,
+  ) {
+    const created = await postJson<Goal>("/api/goals", {
+      title,
+      period,
+      parentGoalId,
+    });
     setGoals((prev) => [created, ...prev]);
   }
 

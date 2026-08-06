@@ -1,5 +1,5 @@
 import db from "@/lib/db";
-import { mapMonthlyReport, mapWeeklyReport } from "@/lib/types";
+import { mapGoal, mapMonthlyReport, mapWeeklyReport } from "@/lib/types";
 import { PeriodicReportsView } from "@/components/reports/PeriodicReportsView";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +10,9 @@ export default async function WeeklyReportsPage() {
     .all();
   const monthlyRows = await db
     .prepare("SELECT * FROM monthly_reports ORDER BY year_month DESC")
+    .all();
+  const goalRows = await db
+    .prepare("SELECT * FROM goals ORDER BY created_at DESC")
     .all();
 
   return (
@@ -23,6 +26,7 @@ export default async function WeeklyReportsPage() {
       <PeriodicReportsView
         initialWeeklyReports={weeklyRows.map((r) => mapWeeklyReport(r as never))}
         initialMonthlyReports={monthlyRows.map((r) => mapMonthlyReport(r as never))}
+        initialGoals={goalRows.map((r) => mapGoal(r as never))}
       />
     </div>
   );

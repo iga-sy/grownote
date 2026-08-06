@@ -21,10 +21,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { title, period, targetDate } = body as {
+  const { title, period, targetDate, parentGoalId } = body as {
     title?: string;
     period?: string;
     targetDate?: string;
+    parentGoalId?: number | null;
   };
 
   if (
@@ -39,9 +40,9 @@ export async function POST(request: Request) {
 
   const result = await db
     .prepare(
-      "INSERT INTO goals (title, period, target_date) VALUES (?, ?, ?)",
+      "INSERT INTO goals (title, period, target_date, parent_goal_id) VALUES (?, ?, ?, ?)",
     )
-    .run(title, period, targetDate ?? null);
+    .run(title, period, targetDate ?? null, parentGoalId ?? null);
 
   const row = await db.prepare("SELECT * FROM goals WHERE id = ?").get(result.lastInsertRowid);
   return NextResponse.json({ data: mapGoal(row as never) }, { status: 201 });

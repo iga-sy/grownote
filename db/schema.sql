@@ -60,13 +60,14 @@ CREATE TABLE IF NOT EXISTS bookmarks (
 );
 
 CREATE TABLE IF NOT EXISTS goals (
-  id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  title       TEXT NOT NULL,
-  period      TEXT NOT NULL CHECK (period IN ('longterm','weekly','monthly')),
-  progress    INTEGER NOT NULL DEFAULT 0 CHECK (progress BETWEEN 0 AND 100),
-  target_date TEXT,
-  created_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
-  updated_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  title           TEXT NOT NULL,
+  period          TEXT NOT NULL CHECK (period IN ('longterm','weekly','monthly')),
+  progress        INTEGER NOT NULL DEFAULT 0 CHECK (progress BETWEEN 0 AND 100),
+  target_date     TEXT,
+  parent_goal_id  INTEGER REFERENCES goals(id) ON DELETE SET NULL,
+  created_at      TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+  updated_at      TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 
 CREATE TABLE IF NOT EXISTS reports (
@@ -105,4 +106,16 @@ CREATE TABLE IF NOT EXISTS roadmaps (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   content      TEXT NOT NULL,
   generated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+);
+
+CREATE TABLE IF NOT EXISTS goal_reviews (
+  id                INTEGER PRIMARY KEY AUTOINCREMENT,
+  scope             TEXT NOT NULL CHECK (scope IN ('weekly','monthly')),
+  period_key        TEXT NOT NULL,
+  manual_content    TEXT,
+  generated_content TEXT,
+  generated_by      TEXT NOT NULL DEFAULT 'gemini' CHECK (generated_by IN ('gemini','manual')),
+  created_at        TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+  updated_at        TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+  UNIQUE(scope, period_key)
 );

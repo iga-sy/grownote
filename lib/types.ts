@@ -59,6 +59,7 @@ export interface Goal {
   period: GoalPeriod;
   progress: number;
   targetDate: string | null;
+  parentGoalId: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -99,6 +100,17 @@ export interface Roadmap {
   id: number;
   content: string;
   generatedAt: string;
+}
+
+export interface GoalReview {
+  id: number;
+  scope: "weekly" | "monthly";
+  periodKey: string;
+  manualContent: string | null;
+  generatedContent: string | null;
+  generatedBy: "gemini" | "manual";
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface TaskRow {
@@ -157,6 +169,7 @@ interface GoalRow {
   period: string;
   progress: number;
   target_date: string | null;
+  parent_goal_id: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -197,6 +210,17 @@ interface RoadmapRow {
   id: number;
   content: string;
   generated_at: string;
+}
+
+interface GoalReviewRow {
+  id: number;
+  scope: string;
+  period_key: string;
+  manual_content: string | null;
+  generated_content: string | null;
+  generated_by: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export function mapTask(row: TaskRow): Task {
@@ -270,6 +294,7 @@ export function mapGoal(row: GoalRow): Goal {
     period: row.period as GoalPeriod,
     progress: row.progress,
     targetDate: row.target_date,
+    parentGoalId: row.parent_goal_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -320,5 +345,18 @@ export function mapRoadmap(row: RoadmapRow): Roadmap {
     id: row.id,
     content: row.content,
     generatedAt: row.generated_at,
+  };
+}
+
+export function mapGoalReview(row: GoalReviewRow): GoalReview {
+  return {
+    id: row.id,
+    scope: row.scope as "weekly" | "monthly",
+    periodKey: row.period_key,
+    manualContent: row.manual_content,
+    generatedContent: row.generated_content,
+    generatedBy: row.generated_by as "gemini" | "manual",
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }

@@ -7,8 +7,9 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { GradientIconBadge } from "@/components/ui/GradientIconBadge";
+import { NextGoalSuggest } from "@/components/reports/NextGoalSuggest";
 import { todayIso, mondayOf } from "@/lib/date";
-import type { WeeklyReport } from "@/lib/types";
+import type { Goal, WeeklyReport } from "@/lib/types";
 
 type Tab = "manual" | "generated";
 
@@ -28,10 +29,15 @@ function defaultTab(report: WeeklyReport | undefined): Tab {
 
 export function WeeklyReportsView({
   initialReports,
+  initialGoals,
 }: {
   initialReports: WeeklyReport[];
+  initialGoals: Goal[];
 }) {
   const [reports, setReports] = useState(initialReports);
+  const [goals, setGoals] = useState(initialGoals);
+  const weeklyGoals = goals.filter((g) => g.period === "weekly");
+  const monthlyGoals = goals.filter((g) => g.period === "monthly");
   const [pick, setPick] = useState(todayIso);
   const weekStart = mondayOf(pick);
   const initialReport = reports.find((r) => r.weekStartDate === mondayOf(todayIso()));
@@ -105,6 +111,7 @@ export function WeeklyReportsView({
   }
 
   return (
+    <div className="flex flex-1 flex-col gap-4">
     <div className="flex flex-1 flex-col gap-4 lg:flex-row">
       <Card title="履歴(週ごと)" className="shrink-0 lg:w-72">
         {reports.length === 0 ? (
@@ -202,7 +209,7 @@ export function WeeklyReportsView({
           value={content}
           onChange={(e) => setContent(e.target.value)}
           rows={16}
-          placeholder="「生成」を押すと、選択した週(月〜日)の日報を積み上げて週報が作成されます。"
+          placeholder="「生成」を押すと、選択した週(月〜日)の日報を積み上げ、育成面談シートの週次欄(今週の計画/①やったこと②分からなかった・確認したこと③来週試すこと)の形式で週報が作成されます。"
           className="flex-1 resize-none rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
         />
 
@@ -215,6 +222,14 @@ export function WeeklyReportsView({
           手動版として保存
         </Button>
       </Card>
+    </div>
+
+      <NextGoalSuggest
+        period="weekly"
+        currentGoals={weeklyGoals}
+        monthlyGoals={monthlyGoals}
+        onAdded={(goal) => setGoals((prev) => [goal, ...prev])}
+      />
     </div>
   );
 }

@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sparkles, Loader2, CalendarClock } from "lucide-react";
+import Link from "next/link";
+import { Sparkles, Loader2, CalendarClock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { GradientIconBadge } from "@/components/ui/GradientIconBadge";
-import { todayIso } from "@/lib/date";
-import type { Report, Schedule } from "@/lib/types";
+import { GoalsDashboard } from "@/components/reports/GoalsDashboard";
+import { todayIso, mondayOf } from "@/lib/date";
+import type { Goal, Report, Schedule } from "@/lib/types";
 
 type Tab = "manual" | "generated";
 
@@ -26,8 +28,10 @@ function defaultTab(report: Report | undefined): Tab {
 
 export function DailyReportsView({
   initialReports,
+  initialGoals,
 }: {
   initialReports: Report[];
+  initialGoals: Goal[];
 }) {
   const [reports, setReports] = useState(initialReports);
   const [selectedDate, setSelectedDate] = useState(todayIso);
@@ -119,7 +123,14 @@ export function DailyReportsView({
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 lg:flex-row">
+    <div className="flex flex-1 flex-col gap-4">
+      <GoalsDashboard
+        scope="weekly"
+        periodKey={mondayOf(selectedDate)}
+        periodLabel={`${mondayOf(selectedDate)}の週`}
+        goals={initialGoals}
+      />
+      <div className="flex flex-1 flex-col gap-4 lg:flex-row">
       <div className="flex shrink-0 flex-col gap-4 lg:w-72">
         <Card
           title={`${selectedDate} のスケジュール`}
@@ -251,6 +262,15 @@ export function DailyReportsView({
           手動版として保存
         </Button>
       </Card>
+      </div>
+
+      <Link
+        href="/reports/weekly"
+        className="flex items-center justify-between gap-2 rounded-lg border border-dashed border-accent/40 bg-accent-soft/30 px-4 py-3 text-sm text-ink hover:bg-accent-soft/60"
+      >
+        <span>日報が整理できたら、次は週報をAIで作成しましょう。</span>
+        <ArrowRight className="h-4 w-4 shrink-0 text-accent" />
+      </Link>
     </div>
   );
 }

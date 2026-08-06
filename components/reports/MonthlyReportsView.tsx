@@ -7,8 +7,10 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { GradientIconBadge } from "@/components/ui/GradientIconBadge";
+import { GoalsDashboard } from "@/components/reports/GoalsDashboard";
+import { NextGoalSuggest } from "@/components/reports/NextGoalSuggest";
 import { currentYearMonth } from "@/lib/date";
-import type { MonthlyReport } from "@/lib/types";
+import type { Goal, MonthlyReport } from "@/lib/types";
 
 type Tab = "manual" | "generated";
 
@@ -29,10 +31,14 @@ function defaultTab(report: MonthlyReport | undefined): Tab {
 
 export function MonthlyReportsView({
   initialReports,
+  initialGoals,
 }: {
   initialReports: MonthlyReport[];
+  initialGoals: Goal[];
 }) {
   const [reports, setReports] = useState(initialReports);
+  const [goals, setGoals] = useState(initialGoals);
+  const monthlyGoals = goals.filter((g) => g.period === "monthly");
   const [yearMonth, setYearMonth] = useState(currentYearMonth);
   const initialReport = reports.find((r) => r.yearMonth === currentYearMonth());
   const [tab, setTab] = useState<Tab>(defaultTab(initialReport));
@@ -104,7 +110,14 @@ export function MonthlyReportsView({
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 lg:flex-row">
+    <div className="flex flex-1 flex-col gap-4">
+      <GoalsDashboard
+        scope="monthly"
+        periodKey={yearMonth}
+        periodLabel={yearMonth}
+        goals={goals}
+      />
+      <div className="flex flex-1 flex-col gap-4 lg:flex-row">
       <Card title="履歴(月ごと)" className="shrink-0 lg:w-72">
         {reports.length === 0 ? (
           <EmptyState message="まだ月報がありません。" />
@@ -196,7 +209,7 @@ export function MonthlyReportsView({
           value={content}
           onChange={(e) => setContent(e.target.value)}
           rows={16}
-          placeholder="「生成」を押すと、選択した月の週報を積み上げて月報が作成されます。"
+          placeholder="「生成」を押すと、選択した月の週報を積み上げ、育成面談シートの月次欄(①今月の目標/②目標達成度合い/③来月に向けての改善案)の形式で月報が作成されます。"
           className="flex-1 resize-none rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
         />
 
@@ -209,6 +222,13 @@ export function MonthlyReportsView({
           手動版として保存
         </Button>
       </Card>
+      </div>
+
+      <NextGoalSuggest
+        period="monthly"
+        currentGoals={monthlyGoals}
+        onAdded={(goal) => setGoals((prev) => [goal, ...prev])}
+      />
     </div>
   );
 }

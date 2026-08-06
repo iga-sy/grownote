@@ -39,6 +39,29 @@ async function ensureReady(): Promise<void> {
       if (!hasFileUrl) {
         await client.execute("ALTER TABLE tasks ADD COLUMN file_url TEXT");
       }
+      const goalsInfo = await client.execute("PRAGMA table_info(goals)");
+      const hasParentGoalId = goalsInfo.rows.some((r) => r.name === "parent_goal_id");
+      if (!hasParentGoalId) {
+        await client.execute("ALTER TABLE goals ADD COLUMN parent_goal_id INTEGER REFERENCES goals(id) ON DELETE SET NULL");
+      }
+      const goalReviewsInfo = await client.execute("PRAGMA table_info(goal_reviews)");
+      const hasManualContent = goalReviewsInfo.rows.some((r) => r.name === "manual_content");
+      if (goalReviewsInfo.rows.length > 0 && !hasManualContent) {
+        await client.execute("DROP TABLE goal_reviews");
+        await client.execute(`
+          CREATE TABLE goal_reviews (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            scope             TEXT NOT NULL CHECK (scope IN ('weekly','monthly')),
+            period_key        TEXT NOT NULL,
+            manual_content    TEXT,
+            generated_content TEXT,
+            generated_by      TEXT NOT NULL DEFAULT 'gemini' CHECK (generated_by IN ('gemini','manual')),
+            created_at        TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+            updated_at        TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+            UNIQUE(scope, period_key)
+          )
+        `);
+      }
       await migrateReportTable("reports");
       await migrateReportTable("weekly_reports");
       await migrateReportTable("monthly_reports");
